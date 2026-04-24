@@ -1,181 +1,218 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import api from "../utils/api";
+import { useTheme } from "../context/ThemeContext";
+import {
+  FiUser,
+  FiLock,
+  FiEye,
+  FiEyeOff,
+  FiAlertCircle,
+  FiLoader,
+  FiSun,
+  FiMoon,
+} from "react-icons/fi";
 
 const LoginPage = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showPass, setShowPass] = useState(false);
-
-  const { login } = useAuth();
+  const { login, loading, error, clearError, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+
+  const [form, setForm] = useState({ username: "", password: "" });
+  const [showPass, setShowPass] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (user) navigate("/dashboard");
+  }, [user, navigate]);
+
+  const handleChange = (e) => {
+    clearError();
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-
-    if (!username.trim() || !password.trim()) {
-      setError("Username and Password are required.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await api.post("/auth/login", { username, password });
-
-      if (res.data.success) {
-        login(res.data.user, res.data.token);
-        navigate("/dashboard", { replace: true });
-      }
-    } catch (err) {
-      const msg = err.response?.data?.message || "Login failed. Server error.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
+    if (!form.username.trim() || !form.password.trim()) return;
+    const result = await login(form.username, form.password);
+    if (result.success) navigate("/dashboard");
   };
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background grid pattern */}
-      <div
-        className="absolute inset-0 opacity-[0.03]"
+    <div
+      className="min-h-screen flex items-center justify-center relative overflow-hidden theme-bg"
+      style={{ transition: "background-color 0.3s ease" }}
+    >
+      {/* Theme toggle - top right */}
+      <button
+        onClick={toggleTheme}
+        className="absolute top-5 right-5 z-20 w-9 h-9 rounded-xl flex items-center justify-center transition-all"
         style={{
-          backgroundImage: `linear-gradient(#4d7bff 1px, transparent 1px), linear-gradient(90deg, #4d7bff 1px, transparent 1px)`,
-          backgroundSize: "40px 40px",
+          background: "var(--bg-card)",
+          border: "1px solid var(--bg-border)",
+          color: "var(--text-muted)",
+          boxShadow: "var(--shadow-card)",
+        }}
+        aria-label="Toggle theme"
+      >
+        {theme === "dark" ? <FiSun size={16} /> : <FiMoon size={16} />}
+      </button>
+
+      {/* Background grid */}
+      <div
+        className="absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage:
+            "linear-gradient(#FF6B00 1px, transparent 1px), linear-gradient(90deg, #FF6B00 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
         }}
       />
 
-      {/* Glow effect */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-600/5 rounded-full blur-3xl pointer-events-none" />
+      {/* Ambient glow */}
+      <div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
+        style={{
+          opacity: theme === "dark" ? 0.08 : 0.04,
+          background: "radial-gradient(circle, #FF6B00 0%, transparent 70%)",
+        }}
+      />
 
-      {/* Login Card */}
-      <div className="relative w-full max-w-sm">
-        {/* Logo / Brand */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-brand-600 rounded-2xl mb-4 shadow-lg shadow-brand-600/30">
-            {/* Store icon */}
-            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                d="M9 22V12h6v10" />
+      <div
+        className={`relative z-10 w-full max-w-md mx-4 transition-all duration-700 ${
+          mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+        }`}
+      >
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-orange mb-4 shadow-orange">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <path
+                d="M4 8h24M4 8v16a2 2 0 002 2h20a2 2 0 002-2V8M4 8l2-4h20l2 4M12 14h8M12 18h8"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-gray-100 tracking-tight">Retail Inventory</h1>
-          <p className="text-gray-500 text-sm mt-1 font-mono">POS Back Office System</p>
+          <h1 className="font-display text-4xl tracking-wider" style={{ color: "var(--text-primary)" }}>
+            RETAIL TARGET
+          </h1>
+          <p
+            className="text-sm font-body mt-1 tracking-widest uppercase"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Inventory Management System
+          </p>
         </div>
 
-        {/* Form Card */}
-        <div className="card shadow-2xl shadow-black/50">
-          <h2 className="text-base font-semibold text-gray-200 mb-6">Sign in to your account</h2>
+        {/* Card */}
+        <div className="card">
+          <h2
+            className="font-body text-xl font-semibold mb-1"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Welcome back
+          </h2>
+          <p className="text-sm mb-7 font-body" style={{ color: "var(--text-secondary)" }}>
+            Sign in to your account to continue
+          </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Error */}
+          {error && (
+            <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6 animate-fade-in">
+              <FiAlertCircle className="text-red-400 mt-0.5 flex-shrink-0" size={16} />
+              <p className="text-red-400 text-sm font-body">{error}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Username */}
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+            <div className="space-y-2">
+              <label
+                className="text-xs font-semibold tracking-wider uppercase font-body block"
+                style={{ color: "var(--text-secondary)" }}
+              >
                 Username
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </span>
+                <FiUser
+                  className="absolute left-4 top-1/2 -translate-y-1/2"
+                  style={{ color: "var(--text-muted)" }}
+                  size={16}
+                />
                 <input
                   type="text"
-                  className="input-field pl-10"
-                  placeholder="Enter username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  name="username"
+                  value={form.username}
+                  onChange={handleChange}
+                  placeholder="Enter your username"
+                  className="input-field pl-11"
                   autoComplete="username"
-                  autoFocus
+                  disabled={loading}
                 />
               </div>
             </div>
 
             {/* Password */}
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+            <div className="space-y-2">
+              <label
+                className="text-xs font-semibold tracking-wider uppercase font-body block"
+                style={{ color: "var(--text-secondary)" }}
+              >
                 Password
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </span>
+                <FiLock
+                  className="absolute left-4 top-1/2 -translate-y-1/2"
+                  style={{ color: "var(--text-muted)" }}
+                  size={16}
+                />
                 <input
                   type={showPass ? "text" : "password"}
-                  className="input-field pl-10 pr-10"
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  className="input-field pl-11 pr-11"
                   autoComplete="current-password"
+                  disabled={loading}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  onClick={() => setShowPass((v) => !v)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors hover:text-brand-orange"
+                  style={{ color: "var(--text-muted)" }}
+                  tabIndex={-1}
                 >
-                  {showPass ? (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
+                  {showPass ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                 </button>
               </div>
             </div>
 
-            {/* Error message */}
-            {error && (
-              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2.5">
-                <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-red-400 text-sm">{error}</span>
-              </div>
-            )}
-
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
-              className="btn-primary w-full mt-2 flex items-center justify-center gap-2 py-2.5"
+              disabled={loading || !form.username || !form.password}
+              className="w-full btn-primary flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <FiLoader className="animate-spin" size={16} />
                   <span>Signing in...</span>
                 </>
               ) : (
-                <>
-                  <span>Sign In</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </>
+                <span>Sign In</span>
               )}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-gray-600 text-xs mt-6 font-mono">
-          © {new Date().getFullYear()} Retail Inventory System
+        <p
+          className="text-center text-xs mt-6 font-mono"
+          style={{ color: "var(--text-muted)" }}
+        >
+          RETAIL TARGET MANAGEMENT · {new Date().getFullYear()}
         </p>
       </div>
     </div>
