@@ -1,13 +1,168 @@
-body {
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  padding: 0;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* ─── CSS VARIABLES ──────────────────────────────────────────── */
+:root {
+  --bg-primary:      #0A0A0A;
+  --bg-soft:         #111111;
+  --bg-card:         #161616;
+  --bg-border:       #222222;
+  --text-primary:    #FFFFFF;
+  --text-secondary:  #AAAAAA;
+  --text-muted:      #888888;
+  --text-faint:      #444444;
+  --shadow-card:     0 4px 32px #00000066;
+}
+
+.light {
+  --bg-primary:      #F4F4F0;
+  --bg-soft:         #FFFFFF;
+  --bg-card:         #FFFFFF;
+  --bg-border:       #E2E2DC;
+  --text-primary:    #111111;
+  --text-secondary:  #555555;
+  --text-muted:      #888888;
+  --text-faint:      #CCCCCC;
+  --shadow-card:     0 4px 32px #00000018;
+}
+
+/* ─── BASE ───────────────────────────────────────────────────── */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
+  line-height: 1.55;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ─── SCROLLBAR ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-soft); }
+::-webkit-scrollbar-thumb { background: #FF6B00; border-radius: 3px; }
+
+/* ─── TYPOGRAPHY FIXES ───────────────────────────────────────── */
+h1, h2, h3 {
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+.font-display {
+  font-family: 'Bebas Neue', cursive;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-body {
+  font-family: 'DM Sans', sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ─── THEME UTILITIES ────────────────────────────────────────── */
+.theme-bg        { background-color: var(--bg-primary); }
+.theme-bg-soft   { background-color: var(--bg-soft); }
+.theme-bg-card   { background-color: var(--bg-card); }
+.theme-border    { border-color: var(--bg-border); }
+.theme-text      { color: var(--text-primary); }
+.theme-text-sec  { color: var(--text-secondary); }
+.theme-text-muted{ color: var(--text-muted); }
+.theme-shadow    { box-shadow: var(--shadow-card); }
+
+/* ─── COMPONENTS ─────────────────────────────────────────────── */
+@layer components {
+  .btn-primary {
+    @apply bg-brand-orange hover:bg-brand-orange-light text-white font-body font-semibold px-6 py-3 rounded-lg transition-all duration-200 hover:shadow-orange active:scale-95 text-sm tracking-wide;
+  }
+  .btn-ghost {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.875rem;
+    @apply border border-[var(--bg-border)] hover:border-brand-orange text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-6 py-3 rounded-lg transition-all duration-200;
+  }
+  .input-field {
+    background-color: var(--bg-card);
+    border: 1px solid var(--bg-border);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9375rem;
+    @apply focus:border-brand-orange placeholder:text-[var(--text-muted)] rounded-lg px-4 py-3 w-full outline-none transition-all duration-200;
+  }
+  .input-field::placeholder {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+  .card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--bg-border);
+    box-shadow: var(--shadow-card);
+    @apply rounded-xl p-6 transition-colors duration-300;
+  }
+  .sidebar {
+    background-color: var(--bg-soft);
+    border-right: 1px solid var(--bg-border);
+  }
+  .topbar {
+    background-color: color-mix(in srgb, var(--bg-primary) 85%, transparent);
+    border-bottom: 1px solid var(--bg-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .nav-item-active {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-orange bg-brand-orange/10 text-sm font-semibold;
+  }
+}
+
+/* ─── THEME TOGGLE BUTTON ────────────────────────────────────── */
+.theme-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--bg-border);
+  border: 1px solid var(--bg-border);
+  cursor: pointer;
+  transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+.theme-toggle.active {
+  background: #FF6B0033;
+  border-color: #FF6B0066;
+}
+.theme-toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s ease;
+}
+.theme-toggle.active .theme-toggle-knob {
+  transform: translateX(20px);
+  background: #FF6B00;
+}
+
+/* ─── MOBILE OVERLAY ─────────────────────────────────────────── */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 35;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease;
 }
