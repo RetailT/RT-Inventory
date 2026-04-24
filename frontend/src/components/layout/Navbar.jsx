@@ -236,12 +236,6 @@ const Navbar = () => {
                   >
                     {user?.username || "User"}
                   </p>
-                  <p
-                    className="text-[10px] truncate font-body"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {user?.department || "Staff"}
-                  </p>
                 </div>
                 <FiChevronDown
                   size={14}
