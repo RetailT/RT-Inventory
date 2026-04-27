@@ -212,7 +212,7 @@ const LoginPage = () => {
           className="text-center text-xs mt-6 font-mono"
           style={{ color: "var(--text-muted)" }}
         >
-          RETAIL TARGET MANAGEMENT · {new Date().getFullYear()}
+          RETAIL TARGET SOFTWARE SOLUTIONS · {new Date().getFullYear()}
         </p>
       </div>
     </div>
