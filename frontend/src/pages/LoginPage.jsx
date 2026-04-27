@@ -85,7 +85,7 @@ const LoginPage = () => {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-orange mb-4 shadow-orange">
+          {/* <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-orange mb-4 shadow-orange">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
               <path
                 d="M4 8h24M4 8v16a2 2 0 002 2h20a2 2 0 002-2V8M4 8l2-4h20l2 4M12 14h8M12 18h8"
@@ -94,7 +94,7 @@ const LoginPage = () => {
                 strokeLinecap="round"
               />
             </svg>
-          </div>
+          </div> */}
           <h1 className="font-display text-4xl tracking-wider" style={{ color: "var(--text-primary)" }}>
             RETAIL TARGET
           </h1>
