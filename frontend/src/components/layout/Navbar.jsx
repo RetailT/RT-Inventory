@@ -2,10 +2,17 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
+// replace — use icons from react-icons
 import {
-  FiGrid, FiPackage, FiShoppingCart, FiTruck,
-  FiLogOut, FiChevronDown,
-  FiUser, FiMenu, FiX, FiSun, FiMoon, FiLayers,
+  FiGrid,
+  FiLogOut,
+  FiChevronDown,
+  FiUser,
+  FiMenu,
+  FiX,
+  FiSun,
+  FiMoon,
+  FiLayers,
 } from "react-icons/fi";
 
 const navGroups = [
