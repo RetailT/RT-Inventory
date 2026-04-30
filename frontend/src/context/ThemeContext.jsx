@@ -5,9 +5,9 @@ const ThemeContext = createContext(null);
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
     try {
-      return localStorage.getItem("ims_theme") || "dark";
+      return localStorage.getItem("ims_theme") || "light"; // ← dark to light
     } catch {
-      return "dark";
+      return "light"; // ← dark to light
     }
   });
 
