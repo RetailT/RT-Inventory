@@ -135,7 +135,7 @@ const DepartmentPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
+    setForm((f) => ({ ...f, [name]: name === "deptName" ? value.toUpperCase() : value }));
     setIsDirty(true);
   };
 
@@ -166,7 +166,7 @@ const DepartmentPage = () => {
           username: user?.username,
         });
         showToast(
-          `Department "${form.deptCode.toUpperCase()}" created successfully.`,
+          `Department "${form.deptCode.toUpperCase()}" created successfully.`
         );
         await fetchDepartments();
         handleClose();
@@ -177,7 +177,7 @@ const DepartmentPage = () => {
           username: user?.username,
         });
         showToast(
-          `Department "${selectedDept.DEPTCODE}" updated successfully.`,
+          `Department "${selectedDept.DEPTCODE}" updated successfully.`
         );
         const res = await api.get(`/departments/${selectedDept.DEPTCODE}`);
         const d = res.data.data;
@@ -203,7 +203,7 @@ const DepartmentPage = () => {
       });
       showToast(`Department "${form.deptCode}" replaced successfully.`);
       const res = await api.get(
-        `/departments/${form.deptCode.trim().toUpperCase()}`,
+        `/departments/${form.deptCode.trim().toUpperCase()}`
       );
       const d = res.data.data;
       setSelectedDept(d);
@@ -231,8 +231,12 @@ const DepartmentPage = () => {
       showToast(`Department "${selectedDept.DEPTCODE}" deleted.`);
       handleClose();
       await fetchDepartments();
-    } catch {
-      showToast("Delete failed.", "error");
+    } catch (err) {
+      // ── Show the exact message from the backend (e.g. 409 product conflict) ──
+      const msg =
+        err.response?.data?.message ||
+        "Delete failed. Please try again.";
+      showToast(msg, "error");
     } finally {
       setFormLoading(false);
     }
@@ -448,7 +452,7 @@ const DepartmentPage = () => {
                 value={form.deptName}
                 onChange={handleChange}
                 placeholder="Enter department name"
-                className="input-field"
+                className="input-field uppercase"
                 disabled={!isFormActive || formLoading}
                 maxLength={30}
               />
@@ -512,8 +516,8 @@ const DepartmentPage = () => {
                 selectedDept
                   ? `${formatDate(selectedDept.CRDATE)}  ${formatTime(selectedDept.CRTIME)}`
                   : isNew
-                    ? new Date().toLocaleString("en-LK")
-                    : null
+                  ? new Date().toLocaleString("en-LK")
+                  : null
               }
             />
             <AuditRow
