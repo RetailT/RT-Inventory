@@ -224,23 +224,31 @@ const DepartmentPage = () => {
   };
 
   const handleDeleteConfirm = async () => {
-    setConfirmDialog({ open: false, type: null });
-    setFormLoading(true);
-    try {
-      await api.delete(`/departments/${selectedDept.DEPTCODE}`);
-      showToast(`Department "${selectedDept.DEPTCODE}" deleted.`);
-      handleClose();
-      await fetchDepartments();
-    } catch (err) {
-      // ── Show the exact message from the backend (e.g. 409 product conflict) ──
-      const msg =
-        err.response?.data?.message ||
-        "Delete failed. Please try again.";
-      showToast(msg, "error");
-    } finally {
-      setFormLoading(false);
-    }
-  };
+  setConfirmDialog({ open: false, type: null });
+  setFormLoading(true);
+  try {
+    await api.delete(`/departments/${selectedDept.DEPTCODE}`);
+    showToast(`Department "${selectedDept.DEPTCODE}" deleted.`);
+    handleClose();
+    await fetchDepartments();
+  } catch (err) {
+    const status = err.response?.status;
+    const serverMsg = err.response?.data?.message;
+
+    const msg =
+      status === 409
+        ? serverMsg || "Cannot delete — products are assigned to this department."
+        : status === 404
+        ? "Department not found."
+        : status === 500
+        ? "Server error. Please contact your administrator."
+        : serverMsg || "Delete failed. Please try again.";
+
+    showToast(msg, "error");
+  } finally {
+    setFormLoading(false);
+  }
+};
 
   const isFormActive = isNew || selectedDept !== null;
 
