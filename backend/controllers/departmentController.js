@@ -115,11 +115,13 @@ const updateDepartment = (req, res) => saveDepartment(req, res, false);
 /**
  * DELETE /api/departments/:code
  */
+
 const deleteDepartment = async (req, res) => {
   const { code } = req.params;
   try {
     const pool = await getPool();
 
+    // 1. Check department exists
     const exists = await pool
       .request()
       .input("code", sql.NVarChar(10), code)
@@ -131,6 +133,24 @@ const deleteDepartment = async (req, res) => {
     if (!exists.recordset.length)
       return sendError(res, "Department not found.", 404);
 
+    // 2. Check if any products are linked to this department
+    const productCheck = await pool
+      .request()
+      .input("code", sql.NVarChar(10), code)
+      .query(`
+        SELECT TOP 1 PRODUCT_CODE
+        FROM [POSBACK_SYSTEM].[dbo].[tb_PRODUCT]
+        WHERE DEPTCODE = @code
+      `);
+
+    if (productCheck.recordset.length)
+      return sendError(
+        res,
+        "Cannot delete department. Products are assigned to this department.",
+        409
+      );
+
+    // 3. Safe to delete
     await pool
       .request()
       .input("code", sql.NVarChar(10), code)
