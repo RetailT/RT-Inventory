@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
-// replace — use icons from react-icons
 import {
   FiGrid,
   FiLogOut,
@@ -13,38 +12,23 @@ import {
   FiSun,
   FiMoon,
   FiLayers,
+  FiTag,
 } from "react-icons/fi";
 
 const navGroups = [
   {
     label: "Main",
     items: [
-      { label: "Dashboard",       icon: FiGrid,        path: "/dashboard",         perm: null },
-      // { label: "Products",        icon: FiPackage,     path: "/products",          perm: "PRODUCTS" },
-      // { label: "Purchase Orders", icon: FiShoppingCart,path: "/purchase-orders",   perm: "PORDER" },
-      // { label: "GRN",             icon: FiTruck,       path: "/grn",               perm: "GRN" },
+      { label: "Dashboard",       icon: FiGrid,   path: "/dashboard",         perm: null },
     ],
   },
   {
     label: "Master Details",
     items: [
       { label: "Department Details", icon: FiLayers, path: "/master/departments", perm: "MASTERFILE" },
-      // { label: "Category Details",   icon: FiTag,    path: "/master/categories",  perm: "MASTERFILE" },
+      { label: "Category Details",   icon: FiTag,    path: "/master/categories",  perm: "MASTERFILE" },
     ],
   },
-  // {
-  //   label: "Reports",
-  //   items: [
-  //     { label: "Stock Report", icon: FiBarChart2, path: "/reports/stock", perm: "STOCKREP" },
-  //     { label: "Sales Report", icon: FiBarChart2, path: "/reports/sales", perm: "SALESREP" },
-  //   ],
-  // },
-  // {
-  //   label: "Settings",
-  //   items: [
-  //     { label: "Settings", icon: FiSettings, path: "/settings", perm: "CONTROL" },
-  //   ],
-  // },
 ];
 
 const Navbar = () => {

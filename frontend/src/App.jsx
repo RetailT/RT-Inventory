@@ -12,6 +12,7 @@ import AppLayout         from "./components/layout/AppLayout";
 import LoginPage         from "./pages/LoginPage";
 import DashboardPage     from "./pages/DashboardPage";
 import DepartmentPage    from "./pages/DepartmentPage";
+import CategoryPage from "./pages/CategoryPage";
 
 const ComingSoon = ({ title }) => (
   <div className="animate-fade-in">
@@ -67,7 +68,7 @@ function App() {
               element={<Protected permission="MASTERFILE"><DepartmentPage /></Protected>}
             />
             <Route path="/master/categories"
-              element={<Protected permission="MASTERFILE"><ComingSoon title="Category Details" /></Protected>}
+              element={<Protected permission="MASTERFILE"><CategoryPage /></Protected>}
             />
 
             {/* Reports */}
