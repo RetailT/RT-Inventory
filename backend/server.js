@@ -16,6 +16,7 @@ app.use(morgan("dev"));
 // ── Routes ────────────────────────────────────────────────
 app.use("/api/auth",        require("./routes/authRoutes"));
 app.use("/api/departments", require("./routes/departmentRoutes")); // ← added
+app.use("/api/categories",  require("./routes/categoryRoutes")); // ← added
 
 // ── Health check ──────────────────────────────────────────
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
