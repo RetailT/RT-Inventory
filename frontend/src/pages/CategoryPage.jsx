@@ -490,7 +490,7 @@ const CategoryPage = () => {
               </div>
             </div>
 
-            {/* ── Category Code — free input (new) or dropdown (existing) ── */}
+            {/* ── Category Code — free input (new) or searchable input (existing) ── */}
             <div>
               <FieldLabel required>Category Code</FieldLabel>
               {isNew ? (
@@ -506,69 +506,52 @@ const CategoryPage = () => {
                 />
               ) : (
                 <div className="relative">
-                  <button
-                    onClick={() => {
-                      if (!formLoading) {
-                        setCatDropOpen((v) => !v);
-                        setCatSearch("");
+                  <input
+                    value={catSearch || form.catCode}
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase();
+                      setCatSearch(val);
+                      setCatDropOpen(true);
+                      // If cleared, reset selection
+                      if (!val) {
+                        setSelectedCat(null);
+                        setForm((f) => ({ ...f, catCode: "", catName: "" }));
+                        setIsDirty(false);
                       }
                     }}
-                    disabled={formLoading}
-                    className="input-field flex items-center justify-between text-left pr-10 w-full"
-                    style={{ cursor: "pointer" }}
-                  >
-                    {form.catCode ? (
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span
-                          className="font-mono text-xs px-2 py-0.5 rounded flex-shrink-0"
-                          style={{
-                            background: "rgba(255,107,0,0.1)",
-                            color: "#FF6B00",
-                            border: "1px solid rgba(255,107,0,0.2)",
-                          }}
-                        >
-                          {form.catCode}
-                        </span>
-                        <span className="truncate" style={{ color: "var(--text-primary)" }}>
-                          {form.catName}
-                        </span>
-                      </div>
-                    ) : (
-                      <span style={{ color: "var(--text-muted)" }}>
-                        {selectedDeptForForm ? "Select or type to search..." : "Select department first..."}
-                      </span>
-                    )}
-                    <FiChevronDown
-                      size={15}
-                      className={`absolute right-3 top-1/2 -translate-y-1/2 transition-transform ${catDropOpen ? "rotate-180" : ""}`}
-                      style={{ color: "var(--text-muted)" }}
-                    />
-                  </button>
+                    onFocus={() => {
+                      setCatSearch(form.catCode || "");
+                      setCatDropOpen(true);
+                    }}
+                    placeholder={
+                      selectedDeptForForm
+                        ? "Type to search or select..."
+                        : "Select department first..."
+                    }
+                    className="input-field font-mono uppercase pr-10"
+                    disabled={formLoading || !selectedDeptForForm}
+                    autoComplete="off"
+                  />
+                  <FiChevronDown
+                    size={15}
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 transition-transform pointer-events-none ${catDropOpen ? "rotate-180" : ""}`}
+                    style={{ color: "var(--text-muted)" }}
+                  />
 
-                  {catDropOpen && (
+                  {catDropOpen && selectedDeptForForm && (
                     <>
-                      <div className="fixed inset-0 z-10" onClick={() => { setCatDropOpen(false); setCatSearch(""); }} />
                       <div
-                        className="absolute top-full left-0 right-0 mt-1 z-20 rounded-xl shadow-2xl"
+                        className="fixed inset-0 z-10"
+                        onClick={() => {
+                          setCatDropOpen(false);
+                          // Restore catCode text if user didn't pick
+                          setCatSearch("");
+                        }}
+                      />
+                      <div
+                        className="absolute top-full left-0 right-0 mt-1 z-20 rounded-xl shadow-2xl max-h-56 overflow-y-auto"
                         style={{ background: "var(--bg-card)", border: "1px solid var(--bg-border)" }}
                       >
-                        {/* Search input inside dropdown */}
-                        <div className="p-2" style={{ borderBottom: "1px solid var(--bg-border)" }}>
-                          <input
-                            autoFocus
-                            value={catSearch}
-                            onChange={(e) => setCatSearch(e.target.value.toUpperCase())}
-                            placeholder="Type code or name..."
-                            className="w-full px-3 py-1.5 rounded-lg text-sm font-mono outline-none"
-                            style={{
-                              background: "var(--bg-primary)",
-                              border: "1px solid var(--bg-border)",
-                              color: "var(--text-primary)",
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </div>
-                        <div className="max-h-48 overflow-y-auto">
                         {(() => {
                           const filtered = catDropList.filter(
                             (c) =>
@@ -576,19 +559,33 @@ const CategoryPage = () => {
                               c.CATNAME.toUpperCase().includes(catSearch)
                           );
                           return filtered.length === 0 ? (
-                            <p className="text-center py-6 text-sm font-body" style={{ color: "var(--text-muted)" }}>
-                              {catDropList.length === 0 ? "No categories for this department" : "No match found"}
+                            <p
+                              className="text-center py-6 text-sm font-body"
+                              style={{ color: "var(--text-muted)" }}
+                            >
+                              {catDropList.length === 0
+                                ? "No categories for this department"
+                                : "No match found"}
                             </p>
                           ) : (
                             filtered.map((c) => (
                               <button
                                 key={c.IDX}
-                                onClick={() => { handleSelectCat(c); setCatSearch(""); }}
+                                onMouseDown={(e) => {
+                                  // onMouseDown instead of onClick to fire before onBlur
+                                  e.preventDefault();
+                                  handleSelectCat(c);
+                                  setCatSearch("");
+                                  setCatDropOpen(false);
+                                }}
                                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors font-body"
                                 onMouseEnter={(e) =>
-                                  (e.currentTarget.style.background = "color-mix(in srgb, var(--text-primary) 6%, transparent)")
+                                  (e.currentTarget.style.background =
+                                    "color-mix(in srgb, var(--text-primary) 6%, transparent)")
                                 }
-                                onMouseLeave={(e) => (e.currentTarget.style.background = "")}
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.background = "")
+                                }
                               >
                                 <span
                                   className="font-mono text-xs px-2 py-0.5 rounded flex-shrink-0"
@@ -600,14 +597,16 @@ const CategoryPage = () => {
                                 >
                                   {c.CATCODE}
                                 </span>
-                                <span className="truncate" style={{ color: "var(--text-primary)" }}>
+                                <span
+                                  className="truncate"
+                                  style={{ color: "var(--text-primary)" }}
+                                >
                                   {c.CATNAME}
                                 </span>
                               </button>
-                              ))
+                            ))
                           );
                         })()}
-                        </div>
                       </div>
                     </>
                   )}

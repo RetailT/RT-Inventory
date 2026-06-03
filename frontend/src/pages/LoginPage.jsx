@@ -193,7 +193,7 @@ const LoginPage = () => {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading || !form.username || !form.password}
+              disabled={loading || !form.username.trim() || !form.password.trim()}
               className="w-full btn-primary flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
             >
               {loading ? (
