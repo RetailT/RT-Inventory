@@ -80,8 +80,8 @@ const Navbar = () => {
           return (
             <div key={group.label}>
               {!isCollapsed && (
-                <p className="text-[10px] font-semibold tracking-widest uppercase px-3 mb-2 font-body"
-                   style={{ color: "var(--text-secondary)" }}>
+                <p className="text-sm font-semibold tracking-widest uppercase px-3 mb-2 font-body"
+                  style={{ color: "var(--text-secondary)" }}>
                   {group.label}
                 </p>
               )}

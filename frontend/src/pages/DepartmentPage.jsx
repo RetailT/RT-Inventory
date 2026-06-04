@@ -202,6 +202,97 @@ const DeptCodeCombobox = ({ departments, listLoading, onSelect, selectedCode }) 
   );
 };
 
+const DeptNameCombobox = ({ departments, value, onChange, onSelect, disabled }) => {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const filtered = value.trim()
+    ? departments.filter((d) =>
+        d.DEPTNAME.toLowerCase().includes(value.toLowerCase())
+      )
+    : departments;
+
+  const handleBlur = (e) => {
+    if (!containerRef.current?.contains(e.relatedTarget)) {
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div ref={containerRef} className="relative" onBlur={handleBlur}>
+      <div className="relative">
+        <FiSearch
+          size={13}
+          className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+          style={{ color: "var(--text-muted)" }}
+        />
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setOpen(true)}
+          placeholder="Search or enter department name"
+          className="input-field uppercase pl-8"
+          disabled={disabled}
+          maxLength={30}
+          autoComplete="off"
+        />
+      </div>
+
+      {open && !disabled && filtered.length > 0 && (
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onMouseDown={() => setOpen(false)}
+          />
+          <div
+            className="absolute top-full left-0 right-0 mt-1 z-20 rounded-xl shadow-2xl max-h-56 overflow-y-auto"
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--bg-border)",
+            }}
+          >
+            {filtered.map((d) => (
+              <button
+                key={d.IDX}
+                tabIndex={0}
+                onMouseDown={() => {
+                  onSelect(d);
+                  setOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors font-body"
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background =
+                    "color-mix(in srgb, var(--text-primary) 6%, transparent)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "")
+                }
+              >
+                <span
+                  className="font-mono text-xs px-2 py-0.5 rounded flex-shrink-0"
+                  style={{
+                    background: "rgba(255,107,0,0.1)",
+                    color: "#FF6B00",
+                    border: "1px solid rgba(255,107,0,0.2)",
+                  }}
+                >
+                  {d.DEPTCODE}
+                </span>
+                <span
+                  className="truncate uppercase"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {d.DEPTNAME}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 const DepartmentPage = () => {
   const { user } = useAuth();
@@ -510,14 +601,15 @@ const DepartmentPage = () => {
             {/* Dept Name */}
             <div>
               <FieldLabel required>Department Name</FieldLabel>
-              <input
-                name="deptName"
+              <DeptNameCombobox
+                departments={departments}
                 value={form.deptName}
-                onChange={handleChange}
-                placeholder="Enter department name"
-                className="input-field uppercase"
-                disabled={!isFormActive || formLoading}
-                maxLength={30}
+                onChange={(val) => {
+                  setForm((f) => ({ ...f, deptName: val.toUpperCase() }));
+                  setIsDirty(true);
+                }}
+                onSelect={(dept) => handleSelectDept(dept)}
+                disabled={formLoading}
               />
             </div>
 
