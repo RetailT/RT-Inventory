@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     try {
-      const stored = sessionStorage.getItem("ims_user"); // ← sessionStorage
+      const stored = sessionStorage.getItem("ims_user");
       if (stored) {
         const parsed = JSON.parse(stored);
         if (isTokenExpired(parsed)) {
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }) => {
       });
       const userData = res.data;
       setUser(userData);
-      sessionStorage.setItem("ims_user", JSON.stringify(userData)); // ← sessionStorage
+      sessionStorage.setItem("ims_user", JSON.stringify(userData));
       return { success: true };
     } catch (err) {
       const msg =
@@ -64,9 +64,24 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    sessionStorage.removeItem("ims_user"); // ← sessionStorage
+  const logout = useCallback(async () => {
+    // ── Notify backend to clear LOGIN = 'F' ──
+    try {
+      const stored = sessionStorage.getItem("ims_user");
+      const token = stored ? JSON.parse(stored)?.token : null;
+      if (token) {
+        await axios.post(
+          `${API_BASE}/auth/logout`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+    } catch {
+      // Silently ignore — still clear local session below
+    } finally {
+      setUser(null);
+      sessionStorage.removeItem("ims_user");
+    }
   }, []);
 
   const clearError = useCallback(() => setError(null), []);
