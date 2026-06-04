@@ -17,7 +17,7 @@ const ALL_PERMISSION_FIELDS = [
   "MINPRICE_CHANGE","PRICE1_CHANGE","PRICE2_CHANGE","PRICE3_CHANGE","GRNCOSTPRICE_CHANGE",
   "GRNUNITPRICE_CHANGE","GRNWPRICE_CHANGE","GRNMINPRICE_CHANGE","PRODUCTCOST_VIEW","INVOICECOST_VIEW",
   "AUTHORIZED_PRODUCTEDIT","STOCK_RECONCILATION","STOCK_RECONCILATION_DATAENTRY","DATAEXPORT",
-  "TOG_REJECT","VENDOR_COSTLOCKED","GRNSAVE","BACKUP_USER","ATTENDANCE","USERLOGINRESET","LOGIN"
+  "TOG_REJECT","VENDOR_COSTLOCKED","GRNSAVE","BACKUP_USER","ATTENDANCE","USERLOGINRESET","LOGIN",
 ];
 
 // Cache for available columns
@@ -27,7 +27,7 @@ const CACHE_DURATION = 5 * 60 * 1000;
 
 async function getExistingColumns(pool) {
   const now = Date.now();
-  if (availableColumnsCache && lastCacheTime && (now - lastCacheTime) < CACHE_DURATION) {
+  if (availableColumnsCache && lastCacheTime && now - lastCacheTime < CACHE_DURATION) {
     return availableColumnsCache;
   }
   try {
@@ -38,7 +38,7 @@ async function getExistingColumns(pool) {
       AND DATA_TYPE = 'char'
       AND CHARACTER_MAXIMUM_LENGTH = 1
     `);
-    availableColumnsCache = result.recordset.map(col => col.COLUMN_NAME);
+    availableColumnsCache = result.recordset.map((col) => col.COLUMN_NAME);
     lastCacheTime = now;
     console.log(`📋 Available permission columns: ${availableColumnsCache.length} columns found`);
     return availableColumnsCache;
@@ -49,8 +49,9 @@ async function getExistingColumns(pool) {
 }
 
 // Helper: check if a char(1) DB value is enabled ('T' or 't')
-const isEnabled = (val) => val && val.toString().trim().toUpperCase() === 'T';
+const isEnabled = (val) => val && val.toString().trim().toUpperCase() === "T";
 
+// ── LOGIN ──────────────────────────────────────────────────────────────────
 const login = async (req, res) => {
   const { username, password } = req.body;
 
@@ -64,13 +65,13 @@ const login = async (req, res) => {
     const pool = await getPool();
     const existingColumns = await getExistingColumns(pool);
 
-    const validPermissionFields = ALL_PERMISSION_FIELDS.filter(f => existingColumns.includes(f));
+    const validPermissionFields = ALL_PERMISSION_FIELDS.filter((f) => existingColumns.includes(f));
     const loginExists = existingColumns.includes("LOGIN");
-    const permFields = validPermissionFields.filter(f => f !== "LOGIN");
+    const permFields = validPermissionFields.filter((f) => f !== "LOGIN");
 
     // Build SELECT
     const selectFields = ["IDX", "USER_NAME", "PASSWORD", ...(loginExists ? ["LOGIN"] : []), ...permFields];
-    const selectQuery = selectFields.map(f => `[${f}]`).join(", ");
+    const selectQuery = selectFields.map((f) => `[${f}]`).join(", ");
 
     const result = await pool
       .request()
@@ -98,18 +99,20 @@ const login = async (req, res) => {
     console.log("✅ Password matched");
 
     // ── 2. LOGIN column check ──────────────────────────────────
-    // LOGIN = 'T' means the account is active.
-    // LOGIN = 'F' (or anything else) means disabled.
+    // LOGIN = 'T' → already logged in elsewhere, block
+    // LOGIN = 'F' / empty / null → allow
     if (loginExists) {
-      const loginVal = row.LOGIN;
+      const loginVal = row.LOGIN ? row.LOGIN.toString().trim().toUpperCase() : "";
       console.log(`📊 LOGIN value: '${loginVal}'`);
-      if (!isEnabled(loginVal)) {
-        console.log(`❌ Account disabled for user: ${username}`);
+
+      if (loginVal === "T") {
+        console.log(`❌ Already logged in on another device: ${username}`);
         return res.status(401).json({
-          message: "Your account is disabled. Please contact the administrator.",
+          message: "This account is already logged in on another device. Please logout first.",
         });
       }
-      console.log("✅ Account is active (LOGIN = T)");
+
+      console.log("✅ LOGIN slot is free, proceeding");
     }
 
     // ── 3. Build permissions ───────────────────────────────────
@@ -117,9 +120,8 @@ const login = async (req, res) => {
     permFields.forEach((field) => {
       permissions[field] = isEnabled(row[field]);
     });
-    permissions["LOGIN"] = true; // passed the check above
+    permissions["LOGIN"] = true;
 
-    // Default false for any fields not in DB
     ALL_PERMISSION_FIELDS.forEach((field) => {
       if (!permissions.hasOwnProperty(field)) {
         permissions[field] = false;
@@ -133,11 +135,20 @@ const login = async (req, res) => {
       permissions,
     };
 
-    const token = jwt.sign(
-      userData,
-      process.env.JWT_SECRET || "ims_secret_key",
-      { expiresIn: "8h" }
-    );
+    const token = jwt.sign(userData, process.env.JWT_SECRET || "ims_secret_key", { expiresIn: "8h" });
+
+    // ── 4. Mark user as logged in (LOGIN = 'T') ────────────────
+    if (loginExists) {
+      await pool
+        .request()
+        .input("username", sql.NVarChar, userData.username)
+        .query(`
+          UPDATE [dbo].[tb_USERS]
+          SET [LOGIN] = 'T'
+          WHERE LTRIM(RTRIM(UPPER([USER_NAME]))) = LTRIM(RTRIM(UPPER(@username)))
+        `);
+      console.log(`✅ LOGIN marked as T for: ${userData.username}`);
+    }
 
     console.log(`✅ Login success: ${userData.username}`);
     console.log(`📊 Active permissions: ${Object.values(permissions).filter(Boolean).length}`);
@@ -154,4 +165,40 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { login };
+// ── LOGOUT ─────────────────────────────────────────────────────────────────
+const logout = async (req, res) => {
+  // username comes from auth middleware (req.user) or request body
+  const username = req.user?.username || req.body?.username;
+
+  if (!username) {
+    return res.status(400).json({ message: "Username is required." });
+  }
+
+  console.log(`🔍 Logout attempt: ${username}`);
+
+  try {
+    const pool = await getPool();
+    const existingColumns = await getExistingColumns(pool);
+    const loginExists = existingColumns.includes("LOGIN");
+
+    if (loginExists) {
+      await pool
+        .request()
+        .input("username", sql.NVarChar, username)
+        .query(`
+          UPDATE [dbo].[tb_USERS]
+          SET [LOGIN] = 'F'
+          WHERE LTRIM(RTRIM(UPPER([USER_NAME]))) = LTRIM(RTRIM(UPPER(@username)))
+        `);
+      console.log(`✅ LOGIN marked as F for: ${username}`);
+    }
+
+    return res.json({ message: "Logged out successfully." });
+
+  } catch (err) {
+    console.error("❌ Logout error:", err);
+    return res.status(500).json({ message: "Logout failed. Please try again." });
+  }
+};
+
+module.exports = { login, logout };
