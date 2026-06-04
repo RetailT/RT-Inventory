@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   FiPlus,
   FiSave,
   FiTrash2,
   FiX,
   FiEdit2,
-  FiChevronDown,
   FiLoader,
   FiRefreshCw,
   FiUser,
   FiClock,
   FiCalendar,
+  FiSearch,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
@@ -61,6 +61,148 @@ const AuditRow = ({ icon: Icon, label, value }) => (
   </div>
 );
 
+// ── Searchable Dept Code Combobox ──────────────────────────────────────────
+const DeptCodeCombobox = ({ departments, listLoading, onSelect, selectedCode }) => {
+  const [query, setQuery] = useState(selectedCode || "");
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Keep input in sync when selectedCode changes externally
+  useEffect(() => {
+    setQuery(selectedCode || "");
+  }, [selectedCode]);
+
+  const filtered = query.trim()
+    ? departments.filter(
+        (d) =>
+          d.DEPTCODE.toLowerCase().includes(query.toLowerCase()) ||
+          d.DEPTNAME.toLowerCase().includes(query.toLowerCase())
+      )
+    : departments;
+
+  const handleInputChange = (e) => {
+    setQuery(e.target.value.toUpperCase());
+    setOpen(true);
+  };
+
+  const handleSelect = (dept) => {
+    setQuery(dept.DEPTCODE);
+    setOpen(false);
+    onSelect(dept);
+  };
+
+  const handleBlur = (e) => {
+    // Close only if focus moves outside container
+    if (!containerRef.current?.contains(e.relatedTarget)) {
+      setOpen(false);
+      // If query doesn't match any dept code exactly, reset to selectedCode
+      const match = departments.find(
+        (d) => d.DEPTCODE.toLowerCase() === query.toLowerCase()
+      );
+      if (!match) {
+        setQuery(selectedCode || "");
+      }
+    }
+  };
+
+  return (
+    <div ref={containerRef} className="relative" onBlur={handleBlur}>
+      {/* Input */}
+      <div className="relative">
+        <FiSearch
+          size={13}
+          className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+          style={{ color: "var(--text-muted)" }}
+        />
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={handleInputChange}
+          onFocus={() => setOpen(true)}
+          placeholder="Search by code or name..."
+          className="input-field font-mono uppercase pl-8"
+          autoComplete="off"
+        />
+      </div>
+
+      {/* Dropdown */}
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onMouseDown={() => setOpen(false)}
+          />
+          <div
+            className="absolute top-full left-0 right-0 mt-1 z-20 rounded-xl shadow-2xl max-h-56 overflow-y-auto"
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--bg-border)",
+            }}
+          >
+            {listLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <FiLoader className="animate-spin text-brand-orange" size={20} />
+              </div>
+            ) : filtered.length === 0 ? (
+              <p
+                className="text-center py-6 text-sm font-body"
+                style={{ color: "var(--text-muted)" }}
+              >
+                No departments match "{query}"
+              </p>
+            ) : (
+              filtered.map((d) => {
+                const isActive = d.DEPTCODE === selectedCode;
+                return (
+                  <button
+                    key={d.IDX}
+                    tabIndex={0}
+                    onMouseDown={() => handleSelect(d)}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors font-body"
+                    style={{
+                      background: isActive
+                        ? "rgba(255,107,0,0.08)"
+                        : "transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive)
+                        e.currentTarget.style.background =
+                          "color-mix(in srgb, var(--text-primary) 6%, transparent)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive)
+                        e.currentTarget.style.background = "";
+                    }}
+                  >
+                    <span
+                      className="font-mono text-xs px-2 py-0.5 rounded flex-shrink-0"
+                      style={{
+                        background: "rgba(255,107,0,0.1)",
+                        color: "#FF6B00",
+                        border: "1px solid rgba(255,107,0,0.2)",
+                      }}
+                    >
+                      {d.DEPTCODE}
+                    </span>
+                    <span
+                      className="truncate"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {d.DEPTNAME}
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ── Main Page ──────────────────────────────────────────────────────────────
 const DepartmentPage = () => {
   const { user } = useAuth();
 
@@ -71,7 +213,6 @@ const DepartmentPage = () => {
   const [isNew, setIsNew] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-  const [dropOpen, setDropOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
     type: null,
@@ -103,7 +244,6 @@ const DepartmentPage = () => {
   }, [fetchDepartments]);
 
   const handleSelectDept = async (dept) => {
-    setDropOpen(false);
     setFormLoading(true);
     setIsNew(false);
     setIsDirty(false);
@@ -135,7 +275,10 @@ const DepartmentPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: name === "deptName" ? value.toUpperCase() : value }));
+    setForm((f) => ({
+      ...f,
+      [name]: name === "deptName" ? value.toUpperCase() : value,
+    }));
     setIsDirty(true);
   };
 
@@ -147,38 +290,30 @@ const DepartmentPage = () => {
     setFormLoading(true);
     try {
       if (isNew) {
-        // ── Check if code already exists before saving ──
         const checkRes = await api
           .get(`/departments/${form.deptCode.trim().toUpperCase()}`)
           .catch(() => null);
 
         if (checkRes?.data?.data) {
-          // Exists — ask user to confirm replace
           setFormLoading(false);
           setConfirmDialog({ open: true, type: "replace" });
           return;
         }
 
-        // Does not exist — create new
         await api.post("/departments", {
           deptCode: form.deptCode,
           deptName: form.deptName,
           username: user?.username,
         });
-        showToast(
-          `Department "${form.deptCode.toUpperCase()}" created successfully.`
-        );
+        showToast(`Department "${form.deptCode.toUpperCase()}" created successfully.`);
         await fetchDepartments();
         handleClose();
       } else {
-        // ── Update existing ──
         await api.put(`/departments/${selectedDept.DEPTCODE}`, {
           deptName: form.deptName,
           username: user?.username,
         });
-        showToast(
-          `Department "${selectedDept.DEPTCODE}" updated successfully.`
-        );
+        showToast(`Department "${selectedDept.DEPTCODE}" updated successfully.`);
         const res = await api.get(`/departments/${selectedDept.DEPTCODE}`);
         const d = res.data.data;
         setSelectedDept(d);
@@ -224,31 +359,29 @@ const DepartmentPage = () => {
   };
 
   const handleDeleteConfirm = async () => {
-  setConfirmDialog({ open: false, type: null });
-  setFormLoading(true);
-  try {
-    await api.delete(`/departments/${selectedDept.DEPTCODE}`);
-    showToast(`Department "${selectedDept.DEPTCODE}" deleted.`);
-    handleClose();
-    await fetchDepartments();
-  } catch (err) {
-    const status = err.response?.status;
-    const serverMsg = err.response?.data?.message;
-
-    const msg =
-      status === 409
-        ? serverMsg || "Cannot delete — products are assigned to this department."
-        : status === 404
-        ? "Department not found."
-        : status === 500
-        ? "Server error. Please contact your administrator."
-        : serverMsg || "Delete failed. Please try again.";
-
-    showToast(msg, "error");
-  } finally {
-    setFormLoading(false);
-  }
-};
+    setConfirmDialog({ open: false, type: null });
+    setFormLoading(true);
+    try {
+      await api.delete(`/departments/${selectedDept.DEPTCODE}`);
+      showToast(`Department "${selectedDept.DEPTCODE}" deleted.`);
+      handleClose();
+      await fetchDepartments();
+    } catch (err) {
+      const status = err.response?.status;
+      const serverMsg = err.response?.data?.message;
+      const msg =
+        status === 409
+          ? serverMsg || "Cannot delete — products are assigned to this department."
+          : status === 404
+          ? "Department not found."
+          : status === 500
+          ? "Server error. Please contact your administrator."
+          : serverMsg || "Delete failed. Please try again.";
+      showToast(msg, "error");
+    } finally {
+      setFormLoading(false);
+    }
+  };
 
   const isFormActive = isNew || selectedDept !== null;
 
@@ -351,7 +484,9 @@ const DepartmentPage = () => {
             {/* Dept Code */}
             <div>
               <FieldLabel required>Department Code</FieldLabel>
+
               {isNew ? (
+                /* New mode — plain text input */
                 <input
                   name="deptCode"
                   value={form.deptCode}
@@ -362,93 +497,13 @@ const DepartmentPage = () => {
                   autoFocus
                 />
               ) : (
-                <div className="relative">
-                  <button
-                    onClick={() => setDropOpen((v) => !v)}
-                    className="input-field flex items-center justify-between text-left pr-10 w-full"
-                    style={{ cursor: "pointer" }}
-                  >
-                    <span
-                      className="font-mono truncate"
-                      style={{
-                        color: form.deptCode
-                          ? "var(--text-primary)"
-                          : "var(--text-muted)",
-                      }}
-                    >
-                      {form.deptCode || "Select department..."}
-                    </span>
-                    <FiChevronDown
-                      size={15}
-                      className={`absolute right-3 top-1/2 -translate-y-1/2 transition-transform ${dropOpen ? "rotate-180" : ""}`}
-                      style={{ color: "var(--text-muted)" }}
-                    />
-                  </button>
-
-                  {dropOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setDropOpen(false)}
-                      />
-                      <div
-                        className="absolute top-full left-0 right-0 mt-1 z-20 rounded-xl shadow-2xl max-h-56 overflow-y-auto"
-                        style={{
-                          background: "var(--bg-card)",
-                          border: "1px solid var(--bg-border)",
-                        }}
-                      >
-                        {listLoading ? (
-                          <div className="flex items-center justify-center py-8">
-                            <FiLoader
-                              className="animate-spin text-brand-orange"
-                              size={20}
-                            />
-                          </div>
-                        ) : departments.length === 0 ? (
-                          <p
-                            className="text-center py-6 text-sm font-body"
-                            style={{ color: "var(--text-muted)" }}
-                          >
-                            No departments found
-                          </p>
-                        ) : (
-                          departments.map((d) => (
-                            <button
-                              key={d.IDX}
-                              onClick={() => handleSelectDept(d)}
-                              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors font-body"
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.background =
-                                  "color-mix(in srgb, var(--text-primary) 6%, transparent)")
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.background = "")
-                              }
-                            >
-                              <span
-                                className="font-mono text-xs px-2 py-0.5 rounded flex-shrink-0"
-                                style={{
-                                  background: "rgba(255,107,0,0.1)",
-                                  color: "#FF6B00",
-                                  border: "1px solid rgba(255,107,0,0.2)",
-                                }}
-                              >
-                                {d.DEPTCODE}
-                              </span>
-                              <span
-                                className="truncate"
-                                style={{ color: "var(--text-primary)" }}
-                              >
-                                {d.DEPTNAME}
-                              </span>
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
+                /* Select/Edit mode — searchable combobox */
+                <DeptCodeCombobox
+                  departments={departments}
+                  listLoading={listLoading}
+                  onSelect={handleSelectDept}
+                  selectedCode={form.deptCode}
+                />
               )}
             </div>
 
@@ -475,10 +530,7 @@ const DepartmentPage = () => {
                   border: "1px solid rgba(255,107,0,0.2)",
                 }}
               >
-                <FiEdit2
-                  size={13}
-                  className="text-brand-orange flex-shrink-0"
-                />
+                <FiEdit2 size={13} className="text-brand-orange flex-shrink-0" />
                 <span className="text-xs font-body text-brand-orange font-semibold">
                   New Department — fill in details and click Save
                 </span>
@@ -497,8 +549,7 @@ const DepartmentPage = () => {
                   className="text-xs font-body"
                   style={{ color: "var(--text-muted)" }}
                 >
-                  Select a department from the dropdown or click New Department
-                  to create one.
+                  Search a department by code or name, or click New Department to create one.
                 </span>
               </div>
             )}
@@ -590,10 +641,7 @@ const DepartmentPage = () => {
           </div>
         ) : departments.length === 0 ? (
           <div className="text-center py-16">
-            <p
-              className="font-body text-sm"
-              style={{ color: "var(--text-muted)" }}
-            >
+            <p className="font-body text-sm" style={{ color: "var(--text-muted)" }}>
               No departments found. Click New Department to add one.
             </p>
           </div>
@@ -602,22 +650,17 @@ const DepartmentPage = () => {
             <table className="w-full text-sm font-body min-w-[500px]">
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--bg-border)" }}>
-                  {[
-                    "Code",
-                    "Name",
-                    "Created By",
-                    "Created Date",
-                    "Edited By",
-                    "Edited Date",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="text-left pb-3 px-2 text-[10px] font-semibold tracking-widest uppercase whitespace-nowrap"
-                      style={{ color: "var(--text-muted)" }}
-                    >
-                      {h}
-                    </th>
-                  ))}
+                  {["Code", "Name", "Created By", "Created Date", "Edited By", "Edited Date"].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        className="text-left pb-3 px-2 text-[10px] font-semibold tracking-widest uppercase whitespace-nowrap"
+                        style={{ color: "var(--text-muted)" }}
+                      >
+                        {h}
+                      </th>
+                    )
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -630,9 +673,7 @@ const DepartmentPage = () => {
                       className="cursor-pointer transition-colors"
                       style={{
                         borderBottom: "1px solid var(--bg-border)",
-                        background: isActive
-                          ? "rgba(255,107,0,0.06)"
-                          : "transparent",
+                        background: isActive ? "rgba(255,107,0,0.06)" : "transparent",
                       }}
                       onMouseEnter={(e) => {
                         if (!isActive)
@@ -640,8 +681,7 @@ const DepartmentPage = () => {
                             "color-mix(in srgb, var(--text-primary) 3%, transparent)";
                       }}
                       onMouseLeave={(e) => {
-                        if (!isActive)
-                          e.currentTarget.style.background = "transparent";
+                        if (!isActive) e.currentTarget.style.background = "transparent";
                       }}
                     >
                       <td className="py-3 px-2">
@@ -656,34 +696,19 @@ const DepartmentPage = () => {
                           {d.DEPTCODE}
                         </span>
                       </td>
-                      <td
-                        className="py-3 px-2"
-                        style={{ color: "var(--text-primary)" }}
-                      >
+                      <td className="py-3 px-2" style={{ color: "var(--text-primary)" }}>
                         {d.DEPTNAME}
                       </td>
-                      <td
-                        className="py-3 px-2 font-mono text-xs whitespace-nowrap"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
+                      <td className="py-3 px-2 font-mono text-xs whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
                         {d.CRUSER || "—"}
                       </td>
-                      <td
-                        className="py-3 px-2 font-mono text-xs whitespace-nowrap"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
+                      <td className="py-3 px-2 font-mono text-xs whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
                         {formatDate(d.CRDATE)}
                       </td>
-                      <td
-                        className="py-3 px-2 font-mono text-xs whitespace-nowrap"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
+                      <td className="py-3 px-2 font-mono text-xs whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
                         {d.EDITUSER || "—"}
                       </td>
-                      <td
-                        className="py-3 px-2 font-mono text-xs whitespace-nowrap"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
+                      <td className="py-3 px-2 font-mono text-xs whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
                         {formatDate(d.EDITDATE)}
                       </td>
                     </tr>

@@ -86,7 +86,7 @@ const saveCategory = async (req, res, isNew) => {
     const hh  = String(now.getHours()).padStart(2, "0");
     const min = String(now.getMinutes()).padStart(2, "0");
     const sec = String(now.getSeconds()).padStart(2, "0");
-    const time = `${hh}:${min}:${sec}`.padEnd(15, " ");     // "14:35:22       "
+    const time = `${hh}:${min}:${sec}`.padEnd(15, " ");     // "14:35:22"
 
     await pool
       .request()
