@@ -1,5 +1,6 @@
 import React from "react";
 import Navbar from "./Navbar";
+import IdleWarningModal from "../ui/IdleWarningModal";
 
 const AppLayout = ({ children }) => {
   return (
@@ -14,6 +15,9 @@ const AppLayout = ({ children }) => {
       <main className="pt-14 md:pl-60 min-h-screen transition-all duration-300">
         <div className="p-4 md:p-6">{children}</div>
       </main>
+
+      {/* Global modals */}
+      <IdleWarningModal />
     </div>
   );
 };
